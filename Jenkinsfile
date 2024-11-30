@@ -52,88 +52,77 @@
 
 
 
+
 pipeline {
     agent any
-
     environment {
-        // Ensure that python3 and pip are in the PATH for the Jenkins build
-        PATH = "/usr/bin:$PATH"
+        DOCKER_IMAGE = 'sample-web-app'
     }
-
     stages {
-        stage('Declarative: Checkout SCM') {
-            steps {
-                checkout scm
-            }
-        }
-
         stage('Checkout App Code') {
             steps {
                 echo 'Checking out code from GitHub (jenkins-webapp)...'
-                git url: 'https://github.com/SidraSaleem296/jenkins-webapp.git', branch: 'main'
+                git branch: 'main', url: 'https://github.com/SidraSaleem296/jenkins-webapp.git'
             }
         }
-
         stage('Build Docker Image') {
             steps {
                 echo 'Building Docker image...'
                 script {
-                    sh 'docker build -t sample-web-app .'
+                    def buildCommand = "docker build -t ${DOCKER_IMAGE} ."
+                    try {
+                        sh buildCommand
+                    } catch (Exception e) {
+                        echo 'Docker build failed without sudo, retrying with sudo...'
+                        sh "sudo ${buildCommand}"
+                    }
                 }
             }
         }
-
         stage('Run Docker Container') {
             steps {
                 echo 'Running Docker container...'
                 script {
-                    sh 'docker run -d -p 5000:5000 sample-web-app'
+                    def runCommand = "docker run -d -p 5000:5000 ${DOCKER_IMAGE}"
+                    try {
+                        sh runCommand
+                    } catch (Exception e) {
+                        echo 'Docker run failed without sudo, retrying with sudo...'
+                        sh "sudo ${runCommand}"
+                    }
                 }
             }
         }
-
-        stage('Debug Environment') {
-            steps {
-                echo 'Debugging Python and pip environment...'
-                script {
-                    sh 'which python3'  // Show where python3 is installed
-                    sh 'which pip'      // Show where pip is installed
-                    sh 'python3 --version'  // Check python version
-                    sh 'python3 -m pip --version'  // Check pip version
-                }
-            }
-        }
-
         stage('Checkout Selenium Tests') {
             steps {
                 echo 'Checking out code from GitHub (selenium-automate)...'
-                git url: 'https://github.com/SidraSaleem296/selenium-automate.git', branch: 'main'
+                git branch: 'main', url: 'https://github.com/SidraSaleem296/selenium-automate.git'
             }
         }
-
         stage('Run Selenium Tests') {
             steps {
                 echo 'Running Selenium tests...'
                 script {
-                    // Explicitly use python3 to ensure the correct pip version is used
-                    sh 'python3 -m pip install -r selenium-automate/requirements.txt'
-                    sh 'python3 selenium-automate/run_tests.py'  // Replace with actual test script if different
+                    try {
+                        // Ensure that we're using the correct Python environment (virtualenv)
+                        sh 'source /venv/bin/activate && pip install -r selenium-automate/requirements.txt'
+
+                        // Run the selenium tests
+                        sh 'source /venv/bin/activate && python selenium-automate/selenium_tests.py'
+                    } catch (Exception e) {
+                        echo 'Selenium tests failed!'
+                        throw e
+                    }
                 }
             }
         }
-
-        stage('Declarative: Post Actions') {
-            steps {
-                echo 'Pipeline execution completed!'
-                echo 'Pipeline failed. Please check logs for details.' 
-            }
-        }
     }
-
     post {
         always {
-            // Clean up Docker container if necessary
-            sh 'docker ps -q --filter "ancestor=sample-web-app" | xargs -r docker stop | xargs -r docker rm'
+            echo 'Pipeline execution completed!'
+        }
+        failure {
+            echo 'Pipeline failed. Please check logs for details.'
         }
     }
 }
