@@ -19,14 +19,12 @@
 
 
 
-
-# Use the official Python base image
 FROM python:3.9-slim
 
-# Set the working directory inside the container
+# Set the working directory in the container
 WORKDIR /app
 
-# Install necessary system dependencies for Selenium and pip
+# Install necessary system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
     libpq-dev \
@@ -35,26 +33,17 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Install virtualenv to create isolated environments
-RUN pip install virtualenv
+# Install Python dependencies directly
+RUN pip install virtualenv selenium flask
 
-# Create a virtual environment inside the container
+# Create a virtual environment
 RUN python3 -m venv /venv
 
-# Ensure that the virtual environment is used
+# Set the path for the virtual environment
 ENV PATH="/venv/bin:$PATH"
 
-# Copy the app code into the container
+# Copy the application code into the container
 COPY . .
 
-# Install Flask and other app dependencies in the virtual environment
+# Install Flask and any additional dependencies
 RUN pip install flask
-
-# Install Selenium dependencies in the virtual environment
-RUN pip install -r selenium-automate/requirements.txt
-
-# Expose port for Flask app
-EXPOSE 5000
-
-# Set the command to run the Flask app
-CMD ["python", "app.py"]
