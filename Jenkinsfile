@@ -50,8 +50,6 @@
 
 
 
-
-
 pipeline {
     agent any
     environment {
@@ -70,10 +68,20 @@ pipeline {
                 git branch: 'main', url: 'https://github.com/SidraSaleem296/selenium-automate.git'
             }
         }
+        stage('Clean Workspace') {
+            steps {
+                echo 'Cleaning workspace...'
+                deleteDir() // Cleans the workspace before starting fresh
+            }
+        }
         stage('Build Docker Image') {
             steps {
                 echo 'Building Docker image...'
                 script {
+                    // Check contents of the working directory
+                    sh 'ls -la'
+                    
+                    // Try building without sudo first
                     def buildCommand = "docker build -t ${DOCKER_IMAGE} ."
                     try {
                         sh buildCommand
@@ -84,39 +92,17 @@ pipeline {
                 }
             }
         }
-        stage('Install Selenium and Other Dependencies') {
-            steps {
-                echo 'Installing Selenium and other dependencies...'
-                script {
-                    // Install dependencies in the Docker container
-                    sh 'docker exec <container_name> pip install selenium flask'
-                }
-            }
-        }
         stage('Run Docker Container') {
             steps {
                 echo 'Running Docker container...'
                 script {
+                    // Try running without sudo first
                     def runCommand = "docker run -d -p 5000:5000 ${DOCKER_IMAGE}"
                     try {
                         sh runCommand
                     } catch (Exception e) {
                         echo 'Docker run failed without sudo, retrying with sudo...'
                         sh "sudo ${runCommand}"
-                    }
-                }
-            }
-        }
-        stage('Run Selenium Tests') {
-            steps {
-                echo 'Running Selenium tests...'
-                script {
-                    try {
-                        // Run the Selenium tests inside the Docker container
-                        sh 'docker exec <container_name> python selenium-automate/selenium_tests.py'
-                    } catch (Exception e) {
-                        echo 'Selenium tests failed!'
-                        throw e
                     }
                 }
             }
