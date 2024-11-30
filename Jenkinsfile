@@ -52,8 +52,6 @@
 
 
 
-
-
 pipeline {
     agent any
     environment {
@@ -64,6 +62,12 @@ pipeline {
             steps {
                 echo 'Checking out code from GitHub (jenkins-webapp)...'
                 git branch: 'main', url: 'https://github.com/SidraSaleem296/jenkins-webapp.git'
+            }
+        }
+        stage('Checkout Selenium Tests') {
+            steps {
+                echo 'Checking out code from GitHub (selenium-automate)...'
+                git branch: 'main', url: 'https://github.com/SidraSaleem296/selenium-automate.git'
             }
         }
         stage('Build Docker Image') {
@@ -80,6 +84,15 @@ pipeline {
                 }
             }
         }
+        stage('Install Selenium and Other Dependencies') {
+            steps {
+                echo 'Installing Selenium and other dependencies...'
+                script {
+                    // Install dependencies in the Docker container
+                    sh 'docker exec <container_name> pip install selenium flask'
+                }
+            }
+        }
         stage('Run Docker Container') {
             steps {
                 echo 'Running Docker container...'
@@ -91,24 +104,6 @@ pipeline {
                         echo 'Docker run failed without sudo, retrying with sudo...'
                         sh "sudo ${runCommand}"
                     }
-                }
-            }
-        }
-        stage('Checkout Selenium Tests') {
-            steps {
-                echo 'Checking out code from GitHub (selenium-automate)...'
-                git branch: 'main', url: 'https://github.com/SidraSaleem296/selenium-automate.git'
-            }
-        }
-        stage('Install Selenium Test Dependencies') {
-            steps {
-                echo 'Installing Selenium test dependencies...'
-                script {
-                    // We need to copy the requirements.txt from the selenium-automate repo into the Docker container
-                    sh 'cp selenium-automate/requirements.txt .'
-
-                    // Install dependencies in the Docker container
-                    sh 'docker exec <container_name> pip install -r requirements.txt'
                 }
             }
         }
