@@ -53,6 +53,7 @@
 
 
 
+
 pipeline {
     agent any
     environment {
@@ -99,16 +100,25 @@ pipeline {
                 git branch: 'main', url: 'https://github.com/SidraSaleem296/selenium-automate.git'
             }
         }
+        stage('Install Selenium Test Dependencies') {
+            steps {
+                echo 'Installing Selenium test dependencies...'
+                script {
+                    // We need to copy the requirements.txt from the selenium-automate repo into the Docker container
+                    sh 'cp selenium-automate/requirements.txt .'
+
+                    // Install dependencies in the Docker container
+                    sh 'docker exec <container_name> pip install -r requirements.txt'
+                }
+            }
+        }
         stage('Run Selenium Tests') {
             steps {
                 echo 'Running Selenium tests...'
                 script {
                     try {
-                        // Ensure that we're using the correct Python environment (virtualenv)
-                        sh 'source /venv/bin/activate && pip install -r selenium-automate/requirements.txt'
-
-                        // Run the selenium tests
-                        sh 'source /venv/bin/activate && python selenium-automate/selenium_tests.py'
+                        // Run the Selenium tests inside the Docker container
+                        sh 'docker exec <container_name> python selenium-automate/selenium_tests.py'
                     } catch (Exception e) {
                         echo 'Selenium tests failed!'
                         throw e
