@@ -18,6 +18,7 @@
 
 
 
+
 # Use the official Python base image
 FROM python:3.9-slim
 
@@ -48,7 +49,7 @@ COPY . .
 # Install Flask and other app dependencies in the virtual environment
 RUN pip install flask
 
-# Install Selenium test dependencies in the virtual environment
+# Install Selenium dependencies in the virtual environment
 RUN pip install -r selenium-automate/requirements.txt
 
 # Expose port for Flask app
